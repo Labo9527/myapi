@@ -102,6 +102,7 @@ func CreateArticle(w http.ResponseWriter, r *http.Request){
 
 func QueryArticle(w http.ResponseWriter, r *http.Request){
 	for _, article := range articles{
+		article.Id=article.Id+1
 		json.NewEncoder(w).Encode(article)
 	}
 }
@@ -150,6 +151,7 @@ func QueryAuserarticle(w http.ResponseWriter, r *http.Request){
 			if article.Author!=user{
 				continue
 			}
+			article.Id=article.Id+1
 			json.NewEncoder(w).Encode(article)
 		}
 		break

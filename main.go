@@ -67,7 +67,13 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	json.NewEncoder(w).Encode(users)
+	for _, user := range users{
+		var mypre Presentuser
+		mypre.Username=user.Username
+		mypre.Mail=user.Mail
+		mypre.Id=user.Id
+		json.NewEncoder(w).Encode(mypre)
+	}
 }
 
 func CreateArticle(w http.ResponseWriter, r *http.Request){
@@ -95,14 +101,15 @@ func CreateArticle(w http.ResponseWriter, r *http.Request){
 	myarticle.Date=time.Now().Format("2006-01-02 15:04:05")
 	myarticle.ReadnNum=0
 	myarticle.Author=nowUser
+	fmt.Println(articles)
 	myarticle.Id=len(articles)+1
 	articles = append(articles, myarticle)
 	json.NewEncoder(w).Encode(myarticle)
 }
 
 func QueryArticle(w http.ResponseWriter, r *http.Request){
-	for _, article := range articles{
-		article.Id=article.Id+1
+	for i, article := range articles{
+		articles[i].ReadnNum=articles[i].ReadnNum+1
 		json.NewEncoder(w).Encode(article)
 	}
 }
@@ -147,15 +154,52 @@ func QueryAuserarticle(w http.ResponseWriter, r *http.Request){
 		if strconv.Itoa(user.Id)!=inputs["id"] {
 			continue
 		}
-		for _, article := range articles{
+		for i, article := range articles{
 			if article.Author!=user{
 				continue
 			}
-			article.Id=article.Id+1
+			articles[i].ReadnNum=articles[i].ReadnNum+1
 			json.NewEncoder(w).Encode(article)
 		}
 		break
 	}
+}
+
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	inputs := mux.Vars(r)
+	var id int
+	id, _ = strconv.Atoi(inputs["id"])
+	if users[id-1].Password!=inputs["password"] {
+		w.WriteHeader(403)
+		fmt.Fprintf(w, "Error Password!")
+		return
+	}
+	var myuser User
+	_ = json.NewDecoder(r.Body).Decode(&myuser)
+	myuser.Id=id
+	users[id-1]=myuser
+	json.NewEncoder(w).Encode(users)
+}
+
+func UpdateArticle(w http.ResponseWriter, r *http.Request){
+	inputs := mux.Vars(r)
+	var id int
+	id, _ = strconv.Atoi(inputs["id"])
+	if articles[id-1].Author.Password!=inputs["password"] {
+		w.WriteHeader(403)
+		fmt.Fprintf(w, "Error Password!")
+		return
+	}
+	var myarticle Article
+	var tuser User
+	_ = json.NewDecoder(r.Body).Decode(&myarticle)
+	tuser=articles[id-1].Author
+	myarticle.Id=id
+	myarticle.Date=time.Now().Format("2006-01-02 15:04:05")
+	myarticle.ReadnNum=0
+	myarticle.Author=tuser
+	articles[id-1]=myarticle
+	json.NewEncoder(w).Encode(articles)
 }
 
 func main(){
@@ -169,6 +213,8 @@ func main(){
 	mymux.HandleFunc("/articles", QueryArticle).Methods("GET")
 	mymux.HandleFunc("/articles/{id}-{password}", CreateArticle).Methods("POST")
 	mymux.HandleFunc("/articles/{id}-{password}", DeleteArticle).Methods("DELETE")
+	mymux.HandleFunc("/users/{id}-{password}", UpdateUser).Methods("PUT")
+	mymux.HandleFunc("/articles/{id}-{password}", UpdateArticle).Methods("PUT")
 
 
 	fmt.Println("Listning to port 9090")
